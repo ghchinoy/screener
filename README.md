@@ -41,6 +41,7 @@ You can use the provided `Makefile` to easily compile and package the applicatio
 ```bash
 make build   # Builds the release binary and packages Screener.app
 make run     # Compiles and launches the app natively
+make install # Installs the app to your /Applications directory
 make clean   # Clean build artifacts and local bundles
 ```
 

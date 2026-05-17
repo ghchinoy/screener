@@ -1,4 +1,4 @@
-.PHONY: help build run clean
+.PHONY: help build run install clean reset-db
 
 help: ## Show this help message
 	@echo "Usage: make [target]"
@@ -21,6 +21,11 @@ build: ## Build the release binary and package it into Screener.app
 run: build ## Build the app and open it
 	@echo "Launching Screener.app..."
 	open Screener.app
+
+install: build ## Install Screener.app to the Applications folder
+	@echo "Installing Screener.app to /Applications..."
+	cp -a Screener.app /Applications/
+	@echo "Install complete. You can now launch Video Screener from Launchpad or Spotlight."
 
 clean: ## Remove build artifacts and the app bundle
 	@echo "Cleaning build artifacts..."
