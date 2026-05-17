@@ -39,20 +39,35 @@ struct VideoRowView: View {
 
 struct ContentView: View {
     @StateObject private var manager = VideoManager()
+    @StateObject private var favoritesManager = FavoritesManager()
+    @ObservedObject private var directoryManager = DirectoryManager.shared
     @State private var selectedVideo: VideoFile?
-    @AppStorage("videoDirectory") private var videoDirectory = "~/Documents/interesting-videos/"
     
     var body: some View {
         NavigationSplitView {
-            List(manager.videos, selection: $selectedVideo) { video in
-                VideoRowView(video: video)
-                    .tag(video)
+            List(selection: $selectedVideo) {
+                let favorites = manager.videos.filter { favoritesManager.isFavorite(videoPath: $0.url.path) }
+                if !favorites.isEmpty {
+                    Section("Starred") {
+                        ForEach(favorites) { video in
+                            VideoRowView(video: video)
+                                .tag(video)
+                        }
+                    }
+                }
+                
+                Section("All Videos") {
+                    ForEach(manager.videos) { video in
+                        VideoRowView(video: video)
+                            .tag(video)
+                    }
+                }
             }
             .navigationTitle("Videos")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: {
-                        manager.loadVideos(from: videoDirectory)
+                        manager.loadVideos(from: directoryManager.directories)
                     }) {
                         Image(systemName: "arrow.clockwise")
                     }
@@ -61,15 +76,16 @@ struct ContentView: View {
         } detail: {
             if let video = selectedVideo {
                 DetailView(video: video)
+                    .environmentObject(favoritesManager)
             } else {
                 Text("Select a video to view details")
                     .foregroundColor(.secondary)
             }
         }
         .onAppear {
-            manager.loadVideos(from: videoDirectory)
+            manager.loadVideos(from: directoryManager.directories)
         }
-        .onChange(of: videoDirectory) { _, newValue in
+        .onChange(of: directoryManager.directories) { oldValue, newValue in
             manager.loadVideos(from: newValue)
             selectedVideo = nil
         }

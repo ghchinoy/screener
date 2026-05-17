@@ -5,6 +5,7 @@ import SwiftData
 struct DetailView: View {
     let video: VideoFile
     @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject var favoritesManager: FavoritesManager
     
     @State private var player: AVPlayer?
     @State private var isAnalyzing = false
@@ -32,9 +33,20 @@ struct DetailView: View {
             // Inspector Area
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Text(video.name)
-                        .font(.title2)
-                        .fontWeight(.bold)
+                    HStack {
+                        Text(video.name)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        
+                        Button {
+                            favoritesManager.toggle(videoPath: video.url.path)
+                        } label: {
+                            Image(systemName: favoritesManager.isFavorite(videoPath: video.url.path) ? "star.fill" : "star")
+                                .foregroundColor(favoritesManager.isFavorite(videoPath: video.url.path) ? .yellow : .gray)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .font(.title3)
+                    }
                     
                     if let meta = metadata {
                         MetadataInspectorView(metadata: meta, showingC2PADetails: $showingC2PADetails)
