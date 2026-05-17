@@ -4,9 +4,9 @@ import AppKit
 struct SettingsView: View {
     var body: some View {
         TabView {
-            DirectoriesSettingsView()
+            GeneralSettingsView()
                 .tabItem {
-                    Label("Directories", systemImage: "folder")
+                    Label("General", systemImage: "gearshape")
                 }
             
             GeminiSettingsView()
@@ -14,16 +14,24 @@ struct SettingsView: View {
                     Label("Gemini", systemImage: "sparkles")
                 }
         }
-        .frame(width: 500, height: 350) // Increased frame size for better layout
+        .frame(width: 500, height: 350)
     }
 }
 
-struct DirectoriesSettingsView: View {
+struct GeneralSettingsView: View {
     @ObservedObject private var directoryManager = DirectoryManager.shared
+    @AppStorage("autoPlayVideos") private var autoPlayVideos = false
+    
+    @State private var newDirectoryPath: String = ""
     
     var body: some View {
         Form {
             VStack(alignment: .leading, spacing: 12) {
+                Toggle("Auto-Play Videos", isOn: $autoPlayVideos)
+                    .help("Automatically start playing a video when selected.")
+                
+                Divider().padding(.vertical, 4)
+                
                 Text("Video Source Directories")
                     .font(.headline)
                 
@@ -49,7 +57,7 @@ struct DirectoriesSettingsView: View {
                         directoryManager.removeDirectory(at: offsets)
                     }
                 }
-                .frame(minHeight: 180)
+                .frame(minHeight: 140)
                 .background(Color(NSColor.controlBackgroundColor))
                 .cornerRadius(6)
                 .overlay(RoundedRectangle(cornerRadius: 6).stroke(Color.gray.opacity(0.2), lineWidth: 1))

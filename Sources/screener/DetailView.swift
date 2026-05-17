@@ -6,6 +6,7 @@ struct DetailView: View {
     let video: VideoFile
     @Environment(\.modelContext) private var modelContext
     @EnvironmentObject var favoritesManager: FavoritesManager
+    @AppStorage("autoPlayVideos") private var autoPlayVideos = false
     
     @State private var player: AVPlayer?
     @State private var isAnalyzing = false
@@ -95,7 +96,9 @@ struct DetailView: View {
     private func setupVideo(_ v: VideoFile) {
         player?.pause()
         player = AVPlayer(url: v.url)
-        player?.play()
+        if autoPlayVideos {
+            player?.play()
+        }
         
         errorMessage = nil
         
