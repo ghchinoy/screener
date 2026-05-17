@@ -24,6 +24,7 @@ run: build ## Build the app and open it
 
 install: build ## Install Screener.app to the Applications folder
 	@echo "Installing Screener.app to /Applications..."
+	rm -rf /Applications/Screener.app
 	cp -a Screener.app /Applications/
 	@echo "Install complete. You can now launch Video Screener from Launchpad or Spotlight."
 
