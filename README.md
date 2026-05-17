@@ -48,7 +48,7 @@ make clean   # Clean build artifacts and local bundles
 ### 4. Application Configuration
 Upon launching the application for the first time, you **must configure your GCP settings**:
 1. Open the application settings by navigating to **Video Screener > Settings...** in the macOS menu bar (or press `Cmd + ,`).
-2. **Video Directory:** Specify the absolute path to the directory containing your videos (defaults to `~/Documents/interesting-videos/`).
+2. **Video Directory:** Specify the absolute path to the directory containing your videos (defaults to `~/Movies`). You can add multiple directories using the native macOS folder picker.
 3. **Model Name:** Ensure the Vertex AI model is set correctly (defaults to `gemini-3.1-flash-lite`).
 4. **GCP Project:** Enter your target Google Cloud Project ID. (If left blank, the app will attempt to dynamically resolve this using `gcloud config get-value project`).
 5. **GCP Location:** Enter your target Vertex AI region (e.g., `us-central1`).
