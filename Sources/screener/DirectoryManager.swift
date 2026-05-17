@@ -7,11 +7,11 @@ class DirectoryManager: ObservableObject {
     
     private init() {
         if let data = UserDefaults.standard.data(forKey: "savedDirectories"),
-           let decoded = try? JSONDecoder().decode([String].self, from: data) {
+           let decoded = try? JSONDecoder().decode([String].self, from: data), !decoded.isEmpty {
             self.directories = decoded
         } else {
             // Default directory if none exist
-            self.directories = ["~/Documents/interesting-videos/"]
+            self.directories = ["~/Movies"]
         }
     }
     
