@@ -1,0 +1,77 @@
+import SwiftUI
+import AVKit
+import SwiftData
+
+struct VideoRowView: View {
+    let video: VideoFile
+    @Query var metadatas: [VideoMetadata]
+    
+    init(video: VideoFile) {
+        self.video = video
+        let path = video.url.path
+        _metadatas = Query(filter: #Predicate<VideoMetadata> { $0.filePath == path })
+    }
+    
+    var body: some View {
+        HStack {
+            if let thumbData = metadatas.first?.thumbnailData, let nsImage = NSImage(data: thumbData) {
+                Image(nsImage: nsImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: 50, height: 50)
+                    .cornerRadius(6)
+                    .clipped()
+            } else {
+                Rectangle()
+                    .fill(Color.gray.opacity(0.3))
+                    .frame(width: 50, height: 50)
+                    .cornerRadius(6)
+                    .overlay(Image(systemName: "video").foregroundColor(.gray))
+            }
+            
+            VStack(alignment: .leading) {
+                Text(video.name).font(.headline).lineLimit(1)
+                Text(video.sizeString).font(.subheadline).foregroundColor(.secondary)
+            }
+        }
+    }
+}
+
+struct ContentView: View {
+    @StateObject private var manager = VideoManager()
+    @State private var selectedVideo: VideoFile?
+    @AppStorage("videoDirectory") private var videoDirectory = "~/Documents/interesting-videos/"
+    
+    var body: some View {
+        NavigationSplitView {
+            List(manager.videos, selection: $selectedVideo) { video in
+                VideoRowView(video: video)
+                    .tag(video)
+            }
+            .navigationTitle("Videos")
+            .toolbar {
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: {
+                        manager.loadVideos(from: videoDirectory)
+                    }) {
+                        Image(systemName: "arrow.clockwise")
+                    }
+                }
+            }
+        } detail: {
+            if let video = selectedVideo {
+                DetailView(video: video)
+            } else {
+                Text("Select a video to view details")
+                    .foregroundColor(.secondary)
+            }
+        }
+        .onAppear {
+            manager.loadVideos(from: videoDirectory)
+        }
+        .onChange(of: videoDirectory) { _, newValue in
+            manager.loadVideos(from: newValue)
+            selectedVideo = nil
+        }
+    }
+}
