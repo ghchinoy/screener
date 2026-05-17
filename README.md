@@ -2,6 +2,8 @@
 
 Video Screener is a macOS native SwiftUI application built for developers, editors, and filmmakers to rapidly browse, analyze, and organize video files. It leverages SwiftData and Google Cloud Vertex AI to provide intelligent, offline-capable, and AI-driven video metadata extraction.
 
+<img width="1977" height="1097" alt="Image" src="https://github.com/user-attachments/assets/2ef56291-62f9-46de-b3c3-4bef6ab10143" />
+
 ## Features
 
 - **macOS HIG Layout**: Utilizes a fully compliant `HSplitView` and Inspector pane for resizable, distraction-free analysis.
