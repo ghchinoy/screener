@@ -4,6 +4,8 @@ import SwiftData
 
 @main
 struct ScreenerApp: App {
+    @AppStorage("showDebugSettings") private var showDebugSettings = false
+    
     init() {
         // Workaround for macOS VideoPlayer crash: force linking AVKit
         #if os(macOS)
@@ -16,6 +18,11 @@ struct ScreenerApp: App {
             ContentView()
         }
         .modelContainer(for: VideoMetadata.self)
+        .commands {
+            CommandMenu("Developer") {
+                Toggle("Show Debug Settings", isOn: $showDebugSettings)
+            }
+        }
         
         #if os(macOS)
         Settings {

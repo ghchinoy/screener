@@ -97,6 +97,7 @@ struct GeminiSettingsView: View {
     @AppStorage("gcpProject") private var gcpProject = ""
     @AppStorage("gcpLocation") private var gcpLocation = "global"
     @AppStorage("environment") private var environment = "prod"
+    @AppStorage("showDebugSettings") private var showDebugSettings = false
 
     var body: some View {
         Form {
@@ -109,28 +110,32 @@ struct GeminiSettingsView: View {
                 }
                 
                 VStack(alignment: .leading) {
-                    Text("GCP Project")
+                    Text("Google Cloud Project")
                     TextField("Uses gcloud config if empty", text: $gcpProject)
                         .textFieldStyle(.roundedBorder)
-                        .help("GCP Project ID. If empty, uses gcloud config.")
+                        .help("Google Cloud Project ID. If empty, uses gcloud config.")
                 }
                 
                 VStack(alignment: .leading) {
-                    Text("GCP Location")
+                    Text("Google Cloud Location")
                     TextField("e.g., global, us-central1", text: $gcpLocation)
                         .textFieldStyle(.roundedBorder)
-                        .help("GCP Location (e.g., global, us-central1).")
+                        .help("Google Cloud Location (e.g., global, us-central1).")
                 }
                 
-                HStack {
-                    Text("Environment:")
-                    Picker("", selection: $environment) {
-                        Text("Production").tag("prod")
-                        Text("Staging").tag("staging")
-                        Text("Autopush").tag("autopush")
+                if showDebugSettings {
+                    Divider().padding(.vertical, 4)
+                    
+                    HStack {
+                        Text("Environment:")
+                        Picker("", selection: $environment) {
+                            Text("Production").tag("prod")
+                            Text("Staging").tag("staging")
+                            Text("Autopush").tag("autopush")
+                        }
+                        .pickerStyle(.menu)
+                        .help("The AI Platform environment to use.")
                     }
-                    .pickerStyle(.menu)
-                    .help("The AI Platform environment to use.")
                 }
             }
         }
