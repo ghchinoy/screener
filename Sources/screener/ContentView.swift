@@ -190,75 +190,11 @@ struct ContentView: View {
                         Label("Batch Analysis", systemImage: batchManager.isAnalyzing ? "arrow.triangle.2.circlepath.circle.fill" : "cloud.circle")
                             .foregroundColor(batchManager.isAnalyzing ? .blue : .primary)
                     }
-                    .sheet(isPresented: $showingActivityPopover) {
-                        VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Text("Batch Analysis")
-                                    .font(.headline)
-                                Spacer()
-                                Button("Done") {
-                                    showingActivityPopover = false
-                                }
-                            }
-                            
-                            let analyzedCount = allMetadata.filter { $0.summary != nil && $0.cloudVisualVector != nil }.count
-                            let totalCount = manager.videos.count
-                            
-                            Text("\(analyzedCount) of \(totalCount) videos fully analyzed.")
-                                .font(.subheadline)
-                            
-                            if batchManager.isAnalyzing {
-                                ProgressView(value: Double(batchManager.analyzedVideos), total: Double(batchManager.totalVideos))
-                                Text("Processing: \(batchManager.currentVideoName)")
-                                    .font(.caption)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                
-                                Button("Stop Analysis") {
-                                    batchManager.stopAnalysis()
-                                }
-                                .buttonStyle(.bordered)
-                                .tint(.red)
-                            } else {
-                                if analyzedCount < totalCount {
-                                    Button("Analyze Missing Videos") {
-                                        Task {
-                                            await batchManager.startBatchAnalysis(videos: manager.videos, modelContext: modelContext)
-                                        }
-                                    }
-                                    .buttonStyle(.borderedProminent)
-                                } else {
-                                    Text("All videos in library are fully indexed!")
-                                        .foregroundColor(.green)
-                                        .font(.caption)
-                                }
-                            }
-                        }
-                        .padding()
-                        .frame(width: 400)
-                    }
                     
                     Button(action: {
                         showingLogPopover.toggle()
                     }) {
                         Label("Debug Logs", systemImage: "terminal")
-                    }
-                    .sheet(isPresented: $showingLogPopover) {
-                        VStack(spacing: 0) {
-                            HStack {
-                                Text("Debug Logs")
-                                    .font(.headline)
-                                Spacer()
-                                Button("Done") {
-                                    showingLogPopover = false
-                                }
-                            }
-                            .padding()
-                            .background(Color(NSColor.controlBackgroundColor))
-                            
-                            Divider()
-                            LogPopoverView()
-                        }
                     }
                     
                     Button(action: {
@@ -291,6 +227,70 @@ struct ContentView: View {
         .onChange(of: directoryManager.directories) { oldValue, newValue in
             manager.loadVideos(from: newValue)
             selectedVideo = nil
+        }
+        .sheet(isPresented: $showingActivityPopover) {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Text("Batch Analysis")
+                        .font(.headline)
+                    Spacer()
+                    Button("Done") {
+                        showingActivityPopover = false
+                    }
+                }
+                
+                let analyzedCount = allMetadata.filter { $0.summary != nil && $0.cloudVisualVector != nil }.count
+                let totalCount = manager.videos.count
+                
+                Text("\(analyzedCount) of \(totalCount) videos fully analyzed.")
+                    .font(.subheadline)
+                
+                if batchManager.isAnalyzing {
+                    ProgressView(value: Double(batchManager.analyzedVideos), total: Double(batchManager.totalVideos))
+                    Text("Processing: \(batchManager.currentVideoName)")
+                        .font(.caption)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                    
+                    Button("Stop Analysis") {
+                        batchManager.stopAnalysis()
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(.red)
+                } else {
+                    if analyzedCount < totalCount {
+                        Button("Analyze Missing Videos") {
+                            Task {
+                                await batchManager.startBatchAnalysis(videos: manager.videos, modelContext: modelContext)
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                    } else {
+                        Text("All videos in library are fully indexed!")
+                            .foregroundColor(.green)
+                            .font(.caption)
+                    }
+                }
+            }
+            .padding()
+            .frame(width: 400)
+        }
+        .sheet(isPresented: $showingLogPopover) {
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Debug Logs")
+                        .font(.headline)
+                    Spacer()
+                    Button("Done") {
+                        showingLogPopover = false
+                    }
+                }
+                .padding()
+                .background(Color(NSColor.controlBackgroundColor))
+                
+                Divider()
+                LogPopoverView()
+            }
         }
     }
     
