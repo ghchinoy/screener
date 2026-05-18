@@ -56,19 +56,37 @@ struct VideoRowView: View {
                 
                 Text(video.sizeString).font(.subheadline).foregroundColor(.secondary)
             }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 4) {
+                if metadatas.first?.summary != nil {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.purple)
+                        .font(.caption)
+                }
+                if metadatas.first?.cloudVisualVector != nil {
+                    Image(systemName: "eye.fill")
+                        .foregroundColor(.green)
+                        .font(.caption)
+                }
+            }
         }
     }
 }
 
 struct ContentView: View {
+    @Environment(\.modelContext) private var modelContext
     @StateObject private var manager = VideoManager()
     @StateObject private var favoritesManager = FavoritesManager()
+    @StateObject private var batchManager = BatchAnalysisManager()
     @ObservedObject private var directoryManager = DirectoryManager.shared
     @Query private var allMetadata: [VideoMetadata]
     
     @State private var selectedVideo: VideoFile?
     @State private var searchText: String = ""
     @State private var isCloudSearching = false
+    @State private var showingActivityPopover = false
     
     @State private var searchMode: SearchMode = .localText
     @State private var cloudQueryVector: [Float]? = nil
@@ -163,6 +181,57 @@ struct ContentView: View {
                         cloudQueryVector = nil
                     }
                 }
+                
+                ToolbarItem(placement: .primaryAction) {
+                    Button(action: {
+                        showingActivityPopover.toggle()
+                    }) {
+                        Image(systemName: batchManager.isAnalyzing ? "arrow.triangle.2.circlepath.circle.fill" : "cloud.circle")
+                            .foregroundColor(batchManager.isAnalyzing ? .blue : .primary)
+                    }
+                    .popover(isPresented: $showingActivityPopover) {
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("Batch Analysis")
+                                .font(.headline)
+                            
+                            let analyzedCount = allMetadata.filter { $0.summary != nil && $0.cloudVisualVector != nil }.count
+                            let totalCount = manager.videos.count
+                            
+                            Text("\(analyzedCount) of \(totalCount) videos fully analyzed.")
+                                .font(.subheadline)
+                            
+                            if batchManager.isAnalyzing {
+                                ProgressView(value: Double(batchManager.analyzedVideos), total: Double(batchManager.totalVideos))
+                                Text("Processing: \(batchManager.currentVideoName)")
+                                    .font(.caption)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                
+                                Button("Stop Analysis") {
+                                    batchManager.stopAnalysis()
+                                }
+                                .buttonStyle(.bordered)
+                                .tint(.red)
+                            } else {
+                                if analyzedCount < totalCount {
+                                    Button("Analyze Missing Videos") {
+                                        Task {
+                                            await batchManager.startBatchAnalysis(videos: manager.videos, modelContext: modelContext)
+                                        }
+                                    }
+                                    .buttonStyle(.borderedProminent)
+                                } else {
+                                    Text("All videos in library are fully indexed!")
+                                        .foregroundColor(.green)
+                                        .font(.caption)
+                                }
+                            }
+                        }
+                        .padding()
+                        .frame(width: 300)
+                    }
+                }
+                
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: {
                         manager.loadVideos(from: directoryManager.directories)

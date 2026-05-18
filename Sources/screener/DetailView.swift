@@ -57,6 +57,25 @@ struct DetailView: View {
                         ProgressView("Loading metadata...")
                     }
                     
+                    HStack(spacing: 12) {
+                        if metadata?.localTextVector != nil {
+                            Label("Text Indexed", systemImage: "text.book.closed.fill")
+                                .foregroundColor(.green)
+                        } else {
+                            Label("No Text Index", systemImage: "text.book.closed")
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        if metadata?.cloudVisualVector != nil {
+                            Label("Visual Indexed", systemImage: "eye.fill")
+                                .foregroundColor(.green)
+                        } else {
+                            Label("No Visual Index", systemImage: "eye.slash")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .font(.caption)
+                    
                     Button(action: {
                         Task {
                             await analyzeVideo()
@@ -67,7 +86,7 @@ struct DetailView: View {
                             Text("Analyzing with Gemini...")
                         } else {
                             Image(systemName: "sparkles")
-                            Text("Describe with Gemini")
+                            Text(metadata?.summary != nil ? "Re-analyze with Gemini" : "Describe with Gemini")
                         }
                     }
                     .disabled(isAnalyzing)
