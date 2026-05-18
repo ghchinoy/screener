@@ -1,0 +1,81 @@
+digraph HybridSemanticSearch {
+    fontname="Helvetica,Arial,sans-serif"
+    node [fontname="Helvetica,Arial,sans-serif"]
+    edge [fontname="Helvetica,Arial,sans-serif"]
+    rankdir=LR;
+    node [shape=box, style="rounded,filled", fillcolor=white, color="#cbd5e1"];
+
+    subgraph cluster_app {
+        label = "Video Screener (macOS)";
+        style = "rounded,dashed";
+        color = "#94a3b8";
+        bgcolor = "#f8fafc";
+
+        VideoFile [label="Video File\n(.mp4)", shape=cylinder, fillcolor="#e2e8f0"];
+        
+        subgraph cluster_processing {
+            label = "Processing Pipeline";
+            style = "rounded";
+            color = "#cbd5e1";
+            bgcolor = white;
+            
+            AVF [label="AVFoundation\n(Thumbnails, FPS)", fillcolor="#dbeafe", color="#3b82f6"];
+            GeminiText [label="Gemini Summary\n(Text, Mood, Tags)", fillcolor="#fef08a", color="#eab308"];
+        }
+        
+        subgraph cluster_embedding {
+            label = "Embedding Generation";
+            style = "rounded";
+            color = "#cbd5e1";
+            bgcolor = white;
+            
+            NLE [label="Apple NLEmbedding\n(On-Device Text)", fillcolor="#dcfce7", color="#22c55e"];
+            VertexAPI [label="Vertex AI Multimodal\n(Cloud Visual)", fillcolor="#ffedd5", color="#eab308"];
+        }
+
+        subgraph cluster_storage {
+            label = "SwiftData (SQLite)";
+            style = "rounded";
+            color = "#cbd5e1";
+            bgcolor = white;
+            
+            LocalVector [label="Local Text Vector\n(512 dims, Data)", shape=note, fillcolor="#f1f5f9"];
+            CloudVector [label="Cloud Visual Vector\n(1408 dims, Data)", shape=note, fillcolor="#f1f5f9"];
+        }
+
+        subgraph cluster_search {
+            label = "Search & Retrieval";
+            style = "rounded";
+            color = "#cbd5e1";
+            bgcolor = white;
+            
+            Query [label="User Search Query", shape=ellipse, fillcolor="#f1f5f9"];
+            Accelerate [label="Accelerate (vDSP)\nCosine Similarity", fillcolor="#f3e8ff", color="#f97316"];
+            UI [label="SwiftUI List\n(Ranked Results)", fillcolor="#e0e7ff", color="#a855f7"];
+        }
+    }
+
+    // Processing Flow
+    VideoFile -> AVF
+    VideoFile -> GeminiText [label=" Vertex API"]
+    
+    // Embedding Flow
+    GeminiText -> NLE [label=" Summary + Comments"]
+    VideoFile -> VertexAPI [label=" Raw Bytes"]
+    
+    // Storage Flow
+    NLE -> LocalVector
+    VertexAPI -> CloudVector
+    
+    // Search Flow
+    Query -> NLE [label=" Local Mode"]
+    Query -> VertexAPI [label=" Cloud Mode"]
+    
+    NLE -> Accelerate [label=" Query Vector"]
+    VertexAPI -> Accelerate [label=" Query Vector"]
+    
+    LocalVector -> Accelerate
+    CloudVector -> Accelerate
+    
+    Accelerate -> UI [label=" Score > 0.3"]
+}

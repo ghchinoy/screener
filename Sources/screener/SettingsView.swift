@@ -27,6 +27,11 @@ struct SettingsView: View {
                 .tabItem {
                     Label("Gemini", systemImage: "sparkles")
                 }
+                
+            DatabaseSettingsView()
+                .tabItem {
+                    Label("Database", systemImage: "server.rack")
+                }
         }
         .frame(width: 500, height: 350)
     }
@@ -151,6 +156,69 @@ struct GeminiSettingsView: View {
                         .help("The AI Platform environment to use.")
                     }
                 }
+            }
+        }
+        .padding(20)
+    }
+}
+
+import SwiftData
+
+struct DatabaseSettingsView: View {
+    @Query private var allMetadata: [VideoMetadata]
+    
+    var body: some View {
+        Form {
+            Section(header: Text("Database Health")) {
+                let totalRecords = allMetadata.count
+                let textIndexed = allMetadata.filter { $0.localTextVectorData != nil }.count
+                let visualIndexed = allMetadata.filter { $0.cloudVisualVectorData != nil }.count
+                let summaries = allMetadata.filter { $0.summary != nil }.count
+                let c2paRecords = allMetadata.filter { $0.hasC2PA == true }.count
+                
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        Text("Total Videos Tracked:")
+                        Spacer()
+                        Text("\(totalRecords)")
+                            .fontWeight(.bold)
+                    }
+                    
+                    HStack {
+                        Text("Gemini Summaries Generated:")
+                        Spacer()
+                        Text("\(summaries)")
+                            .fontWeight(.bold)
+                    }
+                    
+                    Divider()
+                    
+                    HStack {
+                        Text("Local Text Embeddings:")
+                        Spacer()
+                        Text("\(textIndexed)")
+                            .foregroundColor(textIndexed > 0 ? .green : .primary)
+                            .fontWeight(.bold)
+                    }
+                    
+                    HStack {
+                        Text("Cloud Visual Embeddings:")
+                        Spacer()
+                        Text("\(visualIndexed)")
+                            .foregroundColor(visualIndexed > 0 ? .green : .primary)
+                            .fontWeight(.bold)
+                    }
+                    
+                    Divider()
+                    
+                    HStack {
+                        Text("C2PA Credentials Found:")
+                        Spacer()
+                        Text("\(c2paRecords)")
+                            .fontWeight(.bold)
+                    }
+                }
+                .padding(.vertical, 8)
             }
         }
         .padding(20)
