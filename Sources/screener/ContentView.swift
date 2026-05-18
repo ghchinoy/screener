@@ -190,10 +190,16 @@ struct ContentView: View {
                         Label("Batch Analysis", systemImage: batchManager.isAnalyzing ? "arrow.triangle.2.circlepath.circle.fill" : "cloud.circle")
                             .foregroundColor(batchManager.isAnalyzing ? .blue : .primary)
                     }
-                    .popover(isPresented: $showingActivityPopover) {
+                    .sheet(isPresented: $showingActivityPopover) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Batch Analysis")
-                                .font(.headline)
+                            HStack {
+                                Text("Batch Analysis")
+                                    .font(.headline)
+                                Spacer()
+                                Button("Done") {
+                                    showingActivityPopover = false
+                                }
+                            }
                             
                             let analyzedCount = allMetadata.filter { $0.summary != nil && $0.cloudVisualVector != nil }.count
                             let totalCount = manager.videos.count
@@ -229,7 +235,7 @@ struct ContentView: View {
                             }
                         }
                         .padding()
-                        .frame(width: 300)
+                        .frame(width: 400)
                     }
                     
                     Button(action: {
@@ -237,8 +243,22 @@ struct ContentView: View {
                     }) {
                         Label("Debug Logs", systemImage: "terminal")
                     }
-                    .popover(isPresented: $showingLogPopover) {
-                        LogPopoverView()
+                    .sheet(isPresented: $showingLogPopover) {
+                        VStack(spacing: 0) {
+                            HStack {
+                                Text("Debug Logs")
+                                    .font(.headline)
+                                Spacer()
+                                Button("Done") {
+                                    showingLogPopover = false
+                                }
+                            }
+                            .padding()
+                            .background(Color(NSColor.controlBackgroundColor))
+                            
+                            Divider()
+                            LogPopoverView()
+                        }
                     }
                     
                     Button(action: {
