@@ -89,7 +89,7 @@ struct ContentView: View {
     @State private var showingActivityPopover = false
     @State private var showingLogPopover = false
     
-    @State private var searchMode: SearchMode = .localText
+    @State private var searchMode: SearchMode = .cloudVisual
     @State private var cloudQueryVector: [Float]? = nil
     
     enum SearchMode {
