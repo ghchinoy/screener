@@ -166,7 +166,7 @@ struct DetailView: View {
         
         if metadata.hasC2PA == nil {
             do {
-                let manifestJSON = try MockC2PAReader.readFile(at: url)
+                let manifestJSON = try C2PACLIReader.readFile(at: url)
                 metadata.c2paManifestJSON = manifestJSON
                 metadata.hasC2PA = true
                 
@@ -435,30 +435,33 @@ struct InfoRow: View {
     }
 }
 
-struct MockC2PAReader {
+struct C2PACLIReader {
     static func readFile(at url: URL) throws -> String {
-        if url.lastPathComponent.contains("veo") || url.lastPathComponent.contains("genmedia") || url.lastPathComponent.contains("gemini") || url.lastPathComponent.contains("a2v") {
-            return """
-            {
-              "active_manifest": "urn:uuid:mock-c2pa-12345",
-              "manifests": {
-                "urn:uuid:mock-c2pa-12345": {
-                  "claim_generator": "Google Veo / DeepMind",
-                  "signature_info": {
-                    "issuer": "Google Trust Services LLC"
-                  },
-                  "assertions": [
-                    {
-                      "label": "c2pa.training-mining",
-                      "data": { "entries": { "c2pa.settings": { "c2pa.training-mining": "notAllowed" } } }
-                    }
-                  ]
-                }
-              }
+        guard let toolURL = Bundle.module.url(forResource: "c2patool", withExtension: nil) else {
+            throw NSError(domain: "C2PA", code: 404, userInfo: [NSLocalizedDescriptionKey: "c2patool binary not found in bundle"])
+        }
+        
+        let task = Process()
+        task.executableURL = toolURL
+        task.arguments = [url.path]
+        
+        let pipe = Pipe()
+        task.standardOutput = pipe
+        let errorPipe = Pipe()
+        task.standardError = errorPipe
+        
+        try task.run()
+        task.waitUntilExit()
+        
+        if task.terminationStatus == 0 {
+            let data = pipe.fileHandleForReading.readDataToEndOfFile()
+            let jsonString = String(data: data, encoding: .utf8) ?? ""
+            if jsonString.isEmpty {
+                 throw NSError(domain: "C2PA", code: 404, userInfo: [NSLocalizedDescriptionKey: "No C2PA manifest found"])
             }
-            """
+            return jsonString
         } else {
-            throw NSError(domain: "MockC2PA", code: 404, userInfo: [NSLocalizedDescriptionKey: "No C2PA manifest found"])
+            throw NSError(domain: "C2PA", code: 404, userInfo: [NSLocalizedDescriptionKey: "No C2PA manifest found"])
         }
     }
 }
