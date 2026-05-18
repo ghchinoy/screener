@@ -40,14 +40,10 @@ struct VertexRawResponse: Decodable {
 }
 
 struct EmbeddingResponse: Codable {
-    struct Prediction: Codable {
-        let embeddings: EmbeddingValues?
-        let textEmbedding: [Float]? // Sometimes returned differently based on model version
-    }
-    struct EmbeddingValues: Codable {
+    struct EmbeddingData: Codable {
         let values: [Float]
     }
-    let predictions: [Prediction]?
+    let embedding: EmbeddingData?
 }
 
 class VertexClient {
@@ -84,10 +80,10 @@ class VertexClient {
         
         let host = location == "global" ? baseHost : "\(location)-\(baseHost)"
         
-        let embeddingModel = "multimodalembedding@001" 
-        let endpoint = "https://\(host)/v1/projects/\(projectID)/locations/\(location)/publishers/google/models/\(embeddingModel):predict"
+        let embeddingModel = "gemini-embedding-2-preview" 
+        let endpoint = "https://\(host)/v1/projects/\(projectID)/locations/\(location)/publishers/google/models/\(embeddingModel):embedContent"
         
-        await MainActor.run { AppLogger.shared.log("Requesting embedding from \(host) using \(embeddingModel)...") }
+        DispatchQueue.main.async { AppLogger.shared.log("Requesting embedding from \(host) using \(embeddingModel)...") }
         
         guard let apiURL = URL(string: endpoint) else {
             throw VertexError.apiError("Invalid URL")
@@ -99,21 +95,29 @@ class VertexClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(projectID, forHTTPHeaderField: "x-goog-user-project")
         
-        var instance: [String: Any] = [:]
+        var parts: [[String: Any]] = []
         if let text = text {
-            instance["text"] = text
+            parts.append(["text": text])
         }
         if let videoURL = videoURL {
             let fileData = try Data(contentsOf: videoURL)
             let base64String = fileData.base64EncodedString()
-            await MainActor.run { AppLogger.shared.log("Encoding video of size \(fileData.count) bytes") }
-            instance["video"] = [
-                "bytesBase64Encoded": base64String
-            ]
+            let mimeType = videoURL.pathExtension.lowercased() == "mov" ? "video/mp4" : "video/mp4"
+            
+            DispatchQueue.main.async { AppLogger.shared.log("Encoding video of size \(fileData.count) bytes") }
+            
+            parts.append([
+                "inlineData": [
+                    "mimeType": mimeType,
+                    "data": base64String
+                ]
+            ])
         }
         
         let payload: [String: Any] = [
-            "instances": [instance]
+            "content": [
+                "parts": parts
+            ]
         ]
         
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
@@ -121,28 +125,23 @@ class VertexClient {
         let (data, response) = try await URLSession.shared.data(for: request)
         
         guard let httpResponse = response as? HTTPURLResponse else {
-            await MainActor.run { AppLogger.shared.log("Invalid HTTP Response from Vertex", isError: true) }
+            DispatchQueue.main.async { AppLogger.shared.log("Invalid HTTP Response from Vertex", isError: true) }
             throw VertexError.invalidResponse
         }
         
         if !(200...299).contains(httpResponse.statusCode) {
             let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown API Error"
-            await MainActor.run { AppLogger.shared.log("Embedding Error \(httpResponse.statusCode): \(errorMsg)", isError: true) }
+            DispatchQueue.main.async { AppLogger.shared.log("Embedding Error \(httpResponse.statusCode): \(errorMsg)", isError: true) }
             throw VertexError.apiError("Status \(httpResponse.statusCode): \(errorMsg)")
         }
         
         let rawResponse = try JSONDecoder().decode(EmbeddingResponse.self, from: data)
-        if let first = rawResponse.predictions?.first {
-            if let values = first.embeddings?.values {
-                await MainActor.run { AppLogger.shared.log("Successfully retrieved embedding (\(values.count) dimensions)") }
-                return values
-            } else if let values = first.textEmbedding {
-                await MainActor.run { AppLogger.shared.log("Successfully retrieved text embedding (\(values.count) dimensions)") }
-                return values
-            }
+        if let values = rawResponse.embedding?.values {
+            DispatchQueue.main.async { AppLogger.shared.log("Successfully retrieved embedding (\(values.count) dimensions)") }
+            return values
         }
         
-        await MainActor.run { AppLogger.shared.log("Response did not contain valid embedding data", isError: true) }
+        DispatchQueue.main.async { AppLogger.shared.log("Response did not contain valid embedding data", isError: true) }
         throw VertexError.invalidResponse
     }
     
