@@ -59,3 +59,25 @@ If you modify the `VideoMetadata.swift` model during development, the applicatio
 ```bash
 make reset-db
 ```
+
+## C2PA Tool Dependency
+
+This project natively executes the `c2patool` Rust binary to parse Content Credentials. A compiled version of this tool is bundled in `Sources/screener/Resources/c2patool`. 
+
+If you clone this repository on a different architecture (e.g., an Intel Mac), you may need to replace this binary with one compiled for your system:
+1. Download the latest `c2patool-universal-apple-darwin.zip` from the [contentauth/c2patool releases page](https://github.com/contentauth/c2patool/releases).
+2. Extract the `c2patool` binary and replace the file at `Sources/screener/Resources/c2patool`.
+3. Ensure it is executable: `chmod +x Sources/screener/Resources/c2patool`
+
+## Releasing and Distribution
+
+To distribute this macOS application so that others can download it from GitHub and run it without building from source, you must package and sign it:
+
+1. **Build the Release App:** Run `make build` to generate the `Screener.app` bundle.
+2. **Code Signing:** macOS requires apps to be signed. Use your Apple Developer ID:
+   ```bash
+   codesign --force --options runtime --sign "Developer ID Application: Your Name (TEAMID)" Screener.app
+   ```
+3. **Packaging:** Create a DMG (Disk Image) containing the signed `.app` bundle. Tools like `create-dmg` can automate this.
+4. **Notarization:** To prevent Apple's Gatekeeper from blocking the app as "untrusted" on other users' machines, submit the DMG to Apple for notarization using `xcrun notarytool`.
+5. **Publish:** Create a GitHub Release and attach the notarized `.dmg` file.
