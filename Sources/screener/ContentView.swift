@@ -187,7 +187,7 @@ struct ContentView: View {
                     Button(action: {
                         showingActivityPopover.toggle()
                     }) {
-                        Image(systemName: batchManager.isAnalyzing ? "arrow.triangle.2.circlepath.circle.fill" : "cloud.circle")
+                        Label("Batch Analysis", systemImage: batchManager.isAnalyzing ? "arrow.triangle.2.circlepath.circle.fill" : "cloud.circle")
                             .foregroundColor(batchManager.isAnalyzing ? .blue : .primary)
                     }
                     .popover(isPresented: $showingActivityPopover) {
@@ -235,7 +235,7 @@ struct ContentView: View {
                     Button(action: {
                         showingLogPopover.toggle()
                     }) {
-                        Image(systemName: "terminal")
+                        Label("Debug Logs", systemImage: "terminal")
                     }
                     .popover(isPresented: $showingLogPopover) {
                         LogPopoverView()
@@ -244,7 +244,7 @@ struct ContentView: View {
                     Button(action: {
                         manager.loadVideos(from: directoryManager.directories)
                     }) {
-                        Image(systemName: "arrow.clockwise")
+                        Label("Refresh Directory", systemImage: "arrow.clockwise")
                     }
                 }
             }
