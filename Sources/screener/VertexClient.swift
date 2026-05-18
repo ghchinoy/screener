@@ -80,7 +80,7 @@ class VertexClient {
         
         let host = location == "global" ? baseHost : "\(location)-\(baseHost)"
         
-        let embeddingModel = "gemini-embedding-2-preview" 
+        let embeddingModel = location == "global" ? "gemini-embedding-2" : "gemini-embedding-2-preview"
         let endpoint = "https://\(host)/v1/projects/\(projectID)/locations/\(location)/publishers/google/models/\(embeddingModel):embedContent"
         
         DispatchQueue.main.async { AppLogger.shared.log("Requesting embedding from \(host) using \(embeddingModel)...") }
