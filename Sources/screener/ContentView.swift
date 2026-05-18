@@ -87,6 +87,7 @@ struct ContentView: View {
     @State private var searchText: String = ""
     @State private var isCloudSearching = false
     @State private var showingActivityPopover = false
+    @State private var showingLogPopover = false
     
     @State private var searchMode: SearchMode = .localText
     @State private var cloudQueryVector: [Float]? = nil
@@ -182,7 +183,7 @@ struct ContentView: View {
                     }
                 }
                 
-                ToolbarItem(placement: .primaryAction) {
+                ToolbarItemGroup(placement: .primaryAction) {
                     Button(action: {
                         showingActivityPopover.toggle()
                     }) {
@@ -230,9 +231,16 @@ struct ContentView: View {
                         .padding()
                         .frame(width: 300)
                     }
-                }
-                
-                ToolbarItem(placement: .primaryAction) {
+                    
+                    Button(action: {
+                        showingLogPopover.toggle()
+                    }) {
+                        Image(systemName: "terminal")
+                    }
+                    .popover(isPresented: $showingLogPopover) {
+                        LogPopoverView()
+                    }
+                    
                     Button(action: {
                         manager.loadVideos(from: directoryManager.directories)
                     }) {
@@ -285,5 +293,38 @@ struct ContentView: View {
                 }
             }
         }
+    }
+}
+
+struct LogPopoverView: View {
+    @ObservedObject var logger = AppLogger.shared
+    
+    var body: some View {
+        VStack {
+            Text("Debug Logs")
+                .font(.headline)
+                .padding(.top)
+            
+            if logger.messages.isEmpty {
+                Spacer()
+                Text("No logs yet.")
+                    .foregroundColor(.secondary)
+                Spacer()
+            } else {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        ForEach(logger.messages) { msg in
+                            Text("[\(msg.timestamp.formatted(date: .omitted, time: .standard))] \(msg.text)")
+                                .font(.system(.caption, design: .monospaced))
+                                .foregroundColor(msg.isError ? .red : .primary)
+                                .textSelection(.enabled)
+                        }
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+        }
+        .frame(width: 500, height: 400)
     }
 }

@@ -243,10 +243,14 @@ struct DetailView: View {
         errorMessage = nil
         
         if video.size > 20_000_000 {
-            errorMessage = "Video is too large (\(video.sizeString)) for direct inline analysis (limit ~20MB). For production, use File API."
+            let msg = "Video is too large (\(video.sizeString)) for direct inline analysis (limit ~20MB). For production, use File API."
+            errorMessage = msg
+            AppLogger.shared.log(msg, isError: true)
             isAnalyzing = false
             return
         }
+        
+        AppLogger.shared.log("Starting analysis for \(video.name)")
         
         do {
             let response = try await VertexClient.shared.describeVideo(url: video.url)
@@ -260,9 +264,12 @@ struct DetailView: View {
             updateLocalEmbedding()
             try? modelContext.save()
             
+            AppLogger.shared.log("Successfully described video.")
+            
             await updateCloudEmbedding()
         } catch {
             errorMessage = error.localizedDescription
+            AppLogger.shared.log("Analysis failed: \(error.localizedDescription)", isError: true)
         }
         
         isAnalyzing = false

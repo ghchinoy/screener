@@ -1,17 +1,3 @@
-// Copyright 2026 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 import Foundation
 
 enum VertexError: Error, LocalizedError {
@@ -67,51 +53,52 @@ struct EmbeddingResponse: Codable {
 class VertexClient {
     static let shared = VertexClient()
     private init() {}
-
+    
     private var modelName: String {
         UserDefaults.standard.string(forKey: "modelName") ?? "gemini-3.1-flash-lite"
     }
-
+    
     private var configuredProject: String {
         UserDefaults.standard.string(forKey: "gcpProject") ?? ""
     }
-
+    
     private var configuredLocation: String {
-        UserDefaults.standard.string(forKey: "gcpLocation") ?? "us-central1"
+        UserDefaults.standard.string(forKey: "gcpLocation") ?? "global"
     }
-
+    
     private var configuredEnvironment: String {
         UserDefaults.standard.string(forKey: "environment") ?? "prod"
     }
-
+    
     func getEmbedding(text: String? = nil, videoURL: URL? = nil) async throws -> [Float] {
         let token = try fetchADCToken()
         let projectID = configuredProject.isEmpty ? try fetchProjectID() : configuredProject
         let location = configuredLocation.isEmpty ? "us-central1" : configuredLocation
-
+        
         let baseHost: String
         switch configuredEnvironment {
         case "autopush": baseHost = "autopush-aiplatform.sandbox.googleapis.com"
         case "staging": baseHost = "staging-aiplatform.sandbox.googleapis.com"
         default: baseHost = "aiplatform.googleapis.com"
         }
-
+        
         let host = location == "global" ? baseHost : "\(location)-\(baseHost)"
-
-        // Use multimodalembedding@001 or text-multimodalembedding-002
+        
         let embeddingModel = "multimodalembedding@001" 
         let endpoint = "https://\(host)/v1/projects/\(projectID)/locations/\(location)/publishers/google/models/\(embeddingModel):predict"
-
+        
+        await MainActor.run { AppLogger.shared.log("Requesting embedding from \(host) using \(embeddingModel)...") }
+        
         guard let apiURL = URL(string: endpoint) else {
             throw VertexError.apiError("Invalid URL")
         }
-
+        
         var request = URLRequest(url: apiURL)
         request.httpMethod = "POST"
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue(projectID, forHTTPHeaderField: "x-goog-user-project")
-
+        
         var instance: [String: Any] = [:]
         if let text = text {
             instance["text"] = text
@@ -119,36 +106,43 @@ class VertexClient {
         if let videoURL = videoURL {
             let fileData = try Data(contentsOf: videoURL)
             let base64String = fileData.base64EncodedString()
+            await MainActor.run { AppLogger.shared.log("Encoding video of size \(fileData.count) bytes") }
             instance["video"] = [
                 "bytesBase64Encoded": base64String
             ]
         }
-
+        
         let payload: [String: Any] = [
             "instances": [instance]
         ]
-
+        
         request.httpBody = try JSONSerialization.data(withJSONObject: payload)
-
+        
         let (data, response) = try await URLSession.shared.data(for: request)
-
+        
         guard let httpResponse = response as? HTTPURLResponse else {
+            await MainActor.run { AppLogger.shared.log("Invalid HTTP Response from Vertex", isError: true) }
             throw VertexError.invalidResponse
         }
-
+        
         if !(200...299).contains(httpResponse.statusCode) {
             let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown API Error"
+            await MainActor.run { AppLogger.shared.log("Embedding Error \(httpResponse.statusCode): \(errorMsg)", isError: true) }
             throw VertexError.apiError("Status \(httpResponse.statusCode): \(errorMsg)")
         }
-
+        
         let rawResponse = try JSONDecoder().decode(EmbeddingResponse.self, from: data)
         if let first = rawResponse.predictions?.first {
             if let values = first.embeddings?.values {
+                await MainActor.run { AppLogger.shared.log("Successfully retrieved embedding (\(values.count) dimensions)") }
                 return values
             } else if let values = first.textEmbedding {
+                await MainActor.run { AppLogger.shared.log("Successfully retrieved text embedding (\(values.count) dimensions)") }
                 return values
             }
         }
+        
+        await MainActor.run { AppLogger.shared.log("Response did not contain valid embedding data", isError: true) }
         throw VertexError.invalidResponse
     }
     
