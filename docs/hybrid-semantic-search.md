@@ -6,7 +6,22 @@ This allows the application to remain lightning-fast and offline-capable for bas
 
 ![Architecture Diagram](architecture.png)
 
-## 1. The Dual-Vector Index
+## 1. The Pre-Processing Pipeline (Gemini Analysis)
+
+Before generating the `Local Text Vector`, the application must extract high-quality, structured text metadata from the video. It does this by passing the video to the standard Vertex AI `generateContent` endpoint using the `gemini-3.1-flash-lite` model.
+
+The application uses a highly specific prompt to instruct the multimodal model to act as a structured data extractor:
+> "Analyze this video and output a JSON object containing exactly these keys: summary, tags, transcript, colorMood, motionType, contentSafety."
+
+Because Gemini natively understands both the visual frames and the audio track, it can simultaneously:
+*   **Transcript:** Listen to the audio and transcribe speech.
+*   **Motion Type:** Observe temporal changes between frames to classify camera movement (e.g., "Drone flyover", "Static tripod", "Handheld pan").
+*   **Color Mood:** Analyze the dominant color palettes and lighting (e.g., "Warm golden hour", "High contrast neon").
+*   **Summary & Tags:** Synthesize the overall narrative into concise text.
+
+This rich, structured JSON is saved to the `VideoMetadata` SwiftData model, providing the foundation for the local text embedding.
+
+## 2. The Dual-Vector Index
 
 For every video processed, Video Screener stores two distinct, normalized vectors directly inside the local `SwiftData` SQLite store as binary `Data` blobs:
 

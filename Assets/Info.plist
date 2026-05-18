@@ -20,5 +20,11 @@
 	<string>14.0</string>
 	<key>NSHighResolutionCapable</key>
 	<true/>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>Screener needs access to your Documents folder to analyze video files.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>Screener needs access to your Downloads folder to analyze video files.</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>Screener needs access to your Desktop to analyze video files.</string>
 </dict>
 </plist>
