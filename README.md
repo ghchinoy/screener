@@ -57,7 +57,7 @@ Upon launching the application for the first time, you **must configure your GCP
 
 ## Development & Schema Changes
 
-If you modify the `VideoMetadata.swift` model during development, the application will crash on launch (`NSCocoaErrorDomain 134110`) due to a lack of automatic schema migrations in SwiftData. You can safely clear the local database by running:
+If you modify the `VideoMetadata` model during development, you should update the `SchemaMigrationPlan` to handle the evolution. The application uses `VideoMigrationPlan.swift` to automatically migrate data between schemas without crashing or losing data. If you ever need a clean slate, you can still clear the database:
 ```bash
 make reset-db
 ```

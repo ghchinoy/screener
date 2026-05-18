@@ -13,27 +13,26 @@ struct DetailView: View {
     @State private var errorMessage: String?
     @State private var metadata: VideoMetadata?
     @State private var showingC2PADetails = false
+    @State private var showingInspector = true
     
     var body: some View {
-        HSplitView {
-            // Main Video Area
-            VideoPlayer(player: player)
-                .cornerRadius(12)
-                .padding()
-                .frame(minWidth: 400)
-                .onAppear {
-                    setupVideo(video)
-                }
-                .onChange(of: video) { oldValue, newVideo in
-                    setupVideo(newVideo)
-                }
-                .onDisappear {
-                    player?.pause()
-                }
-            
-            // Inspector Area
-            ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+        // Main Video Area
+        VideoPlayer(player: player)
+            .cornerRadius(12)
+            .padding()
+            .frame(minWidth: 400, minHeight: 600)
+            .onAppear {
+                setupVideo(video)
+            }
+            .onChange(of: video) { oldValue, newVideo in
+                setupVideo(newVideo)
+            }
+            .onDisappear {
+                player?.pause()
+            }
+            .inspector(isPresented: $showingInspector) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
                     HStack {
                         Text(video.name)
                             .font(.title2)
@@ -91,6 +90,7 @@ struct DetailView: View {
                     }
                     .disabled(isAnalyzing)
                     .buttonStyle(.borderedProminent)
+                    .keyboardShortcut(.return, modifiers: [.command])
                     
                     if let error = errorMessage {
                         Text(error)
@@ -103,10 +103,18 @@ struct DetailView: View {
                 }
                 .padding()
             }
-            .frame(minWidth: 300, idealWidth: 350, maxWidth: 500)
-            .background(Color(NSColor.windowBackgroundColor))
+            .inspectorColumnWidth(min: 300, ideal: 350, max: 500)
         }
-        .frame(minWidth: 800, minHeight: 600)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    showingInspector.toggle()
+                } label: {
+                    Label("Toggle Inspector", systemImage: "sidebar.right")
+                }
+                .help("Toggle Metadata Inspector")
+            }
+        }
         .sheet(isPresented: $showingC2PADetails) {
             if let meta = metadata {
                 C2PADetailsView(metadata: meta)
@@ -114,16 +122,16 @@ struct DetailView: View {
         }
     }
     
-    private func setupVideo(_ v: VideoFile) {
+    private func setupVideo(_ video: VideoFile) {
         player?.pause()
-        player = AVPlayer(url: v.url)
+        player = AVPlayer(url: video.url)
         if autoPlayVideos {
             player?.play()
         }
         
         errorMessage = nil
         
-        let path = v.url.path
+        let path = video.url.path
         let descriptor = FetchDescriptor<VideoMetadata>(predicate: #Predicate { $0.filePath == path })
         let all = (try? modelContext.fetch(descriptor)) ?? []
         
@@ -138,7 +146,7 @@ struct DetailView: View {
         self.metadata = currentMeta
         
         Task {
-            await extractTechnicalMetadata(for: v.url, metadata: currentMeta)
+            await extractTechnicalMetadata(for: video.url, metadata: currentMeta)
         }
     }
     
@@ -260,6 +268,7 @@ struct DetailView: View {
             metadata?.colorMood = response.colorMood
             metadata?.motionType = response.motionType
             metadata?.contentSafety = response.contentSafety
+            metadata?.lastAnalyzedAt = Date()
             
             updateLocalEmbedding()
             try? modelContext.save()
@@ -273,260 +282,5 @@ struct DetailView: View {
         }
         
         isAnalyzing = false
-    }
-}
-
-struct MetadataInspectorView: View {
-    @Bindable var metadata: VideoMetadata
-    @Binding var showingC2PADetails: Bool
-    var onUpdate: () -> Void
-    
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            
-            GroupBox("Technical Info") {
-                VStack(alignment: .leading, spacing: 8) {
-                    if let d = metadata.duration {
-                        InfoRow(title: "Duration", value: String(format: "%.2fs", d))
-                    }
-                    if let w = metadata.width, let h = metadata.height {
-                        InfoRow(title: "Dimensions", value: "\(Int(w))x\(Int(h))")
-                        
-                        let ratio = w / h
-                        let formatRatio = String(format: "%.2f:1", ratio)
-                        InfoRow(title: "Aspect", value: formatRatio)
-                    }
-                    if let fps = metadata.frameRate {
-                        InfoRow(title: "FPS", value: String(format: "%.2f", fps))
-                    }
-                    if let hasAudio = metadata.hasAudio {
-                        InfoRow(title: "Audio", value: hasAudio ? "Yes" : "No")
-                    }
-                }
-                .padding(4)
-                .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            
-            if let hasC2PA = metadata.hasC2PA {
-                GroupBox("Content Credentials") {
-                    if hasC2PA {
-                        HStack {
-                            if let imagePath = Bundle.module.path(forResource: "c2pa-icon", ofType: "png"),
-                               let nsImage = NSImage(contentsOfFile: imagePath) {
-                                Image(nsImage: nsImage)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 24, height: 24)
-                            } else {
-                                Image(systemName: "checkmark.seal.fill")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 24, height: 24)
-                                    .foregroundColor(.blue)
-                            }
-                            
-                            VStack(alignment: .leading) {
-                                if let issuer = metadata.c2paIssuer {
-                                    Text("Issued by: \(issuer)").font(.subheadline).fontWeight(.medium)
-                                }
-                                if let tool = metadata.c2paTool {
-                                    Text("Tool: \(tool)").font(.caption).foregroundColor(.secondary)
-                                }
-                            }
-                            Spacer()
-                            Button("Details") {
-                                showingC2PADetails = true
-                            }
-                        }
-                        .padding(4)
-                    } else {
-                        Text("No Content Credentials found.")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(4)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                }
-            }
-            
-            GroupBox("Comments") {
-                TextEditor(text: $metadata.comments)
-                    .frame(minHeight: 100)
-                    .scrollContentBackground(.hidden)
-                    .background(Color.clear)
-                    .onChange(of: metadata.comments) { _, _ in
-                        onUpdate()
-                    }
-            }
-            
-            if metadata.summary != nil {
-                GroupBox("Gemini Analysis") {
-                    VStack(alignment: .leading, spacing: 12) {
-                        if let summary = metadata.summary {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Summary").font(.caption).foregroundColor(.secondary)
-                                Text(summary).textSelection(.enabled)
-                            }
-                        }
-                        
-                        if let mood = metadata.colorMood {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Color / Mood").font(.caption).foregroundColor(.secondary)
-                                Text(mood).textSelection(.enabled)
-                            }
-                        }
-                        
-                        if let motion = metadata.motionType {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Motion Type").font(.caption).foregroundColor(.secondary)
-                                Text(motion).textSelection(.enabled)
-                            }
-                        }
-                        
-                        if let transcript = metadata.transcript, transcript != "No speech" && transcript != "" {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Transcript").font(.caption).foregroundColor(.secondary)
-                                Text(transcript).textSelection(.enabled)
-                            }
-                        }
-                        
-                        if let safety = metadata.contentSafety {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Content Safety").font(.caption).foregroundColor(.secondary)
-                                Text(safety).textSelection(.enabled)
-                            }
-                        }
-                        
-                        if !metadata.tags.isEmpty {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack {
-                                    ForEach(metadata.tags, id: \.self) { tag in
-                                        Text(tag)
-                                            .font(.caption)
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Color.blue.opacity(0.2))
-                                            .cornerRadius(8)
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    .padding(4)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            }
-        }
-    }
-}
-
-struct C2PADetailsView: View {
-    let metadata: VideoMetadata
-    @Environment(\.dismiss) var dismiss
-    
-    var body: some View {
-        VStack(spacing: 0) {
-            HStack {
-                Text("Content Credentials (C2PA)")
-                    .font(.headline)
-                Spacer()
-                Button("Done") {
-                    dismiss()
-                }
-                .buttonStyle(.borderedProminent)
-            }
-            .padding()
-            .background(Color(NSColor.controlBackgroundColor))
-            
-            Divider()
-            
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    if let thumb = metadata.thumbnailData, let nsImage = NSImage(data: thumb) {
-                        HStack {
-                            Spacer()
-                            Image(nsImage: nsImage)
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 150)
-                                .cornerRadius(8)
-                            Spacer()
-                        }
-                    }
-                    
-                    GroupBox("Signature Information") {
-                        VStack(alignment: .leading, spacing: 8) {
-                            InfoRow(title: "Status", value: "Valid (Cryptographically Signed)")
-                            if let issuer = metadata.c2paIssuer {
-                                InfoRow(title: "Issuer", value: issuer)
-                            }
-                            if let tool = metadata.c2paTool {
-                                InfoRow(title: "Software", value: tool)
-                            }
-                        }
-                        .padding()
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    }
-                    
-                    if let json = metadata.c2paManifestJSON {
-                        GroupBox("Raw Manifest JSON") {
-                            Text(json)
-                                .font(.system(.caption, design: .monospaced))
-                                .textSelection(.enabled)
-                                .padding()
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                    }
-                }
-                .padding()
-            }
-        }
-        .frame(width: 600, height: 500)
-    }
-}
-
-struct InfoRow: View {
-    let title: String
-    let value: String
-    
-    var body: some View {
-        HStack(alignment: .top) {
-            Text(title + ":")
-                .fontWeight(.semibold)
-                .frame(width: 80, alignment: .leading)
-            Text(value)
-                .textSelection(.enabled)
-        }
-    }
-}
-
-struct C2PACLIReader {
-    static func readFile(at url: URL) throws -> String {
-        guard let toolURL = Bundle.module.url(forResource: "c2patool", withExtension: nil) else {
-            throw NSError(domain: "C2PA", code: 404, userInfo: [NSLocalizedDescriptionKey: "c2patool binary not found in bundle"])
-        }
-        
-        let task = Process()
-        task.executableURL = toolURL
-        task.arguments = [url.path]
-        
-        let pipe = Pipe()
-        task.standardOutput = pipe
-        let errorPipe = Pipe()
-        task.standardError = errorPipe
-        
-        try task.run()
-        task.waitUntilExit()
-        
-        if task.terminationStatus == 0 {
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let jsonString = String(data: data, encoding: .utf8) ?? ""
-            if jsonString.isEmpty {
-                 throw NSError(domain: "C2PA", code: 404, userInfo: [NSLocalizedDescriptionKey: "No C2PA manifest found"])
-            }
-            return jsonString
-        } else {
-            throw NSError(domain: "C2PA", code: 404, userInfo: [NSLocalizedDescriptionKey: "No C2PA manifest found"])
-        }
     }
 }

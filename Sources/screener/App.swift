@@ -31,7 +31,7 @@ struct ScreenerApp: App {
         WindowGroup("Video Screener") {
             ContentView()
         }
-        .modelContainer(for: VideoMetadata.self)
+        .modelContainer(sharedModelContainer)
         .commands {
             CommandMenu("Developer") {
                 Toggle("Show Debug Settings", isOn: $showDebugSettings)
@@ -42,6 +42,17 @@ struct ScreenerApp: App {
         Settings {
             SettingsView()
         }
+        .modelContainer(sharedModelContainer)
         #endif
     }
+    
+    var sharedModelContainer: ModelContainer = {
+        let schema = Schema([VideoMetadata.self])
+        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+        do {
+            return try ModelContainer(for: schema, migrationPlan: VideoMigrationPlan.self, configurations: [modelConfiguration])
+        } catch {
+            fatalError("Could not create ModelContainer: \(error)")
+        }
+    }()
 }

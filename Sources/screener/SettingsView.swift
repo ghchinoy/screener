@@ -120,42 +120,28 @@ struct GeminiSettingsView: View {
 
     var body: some View {
         Form {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading) {
-                    Text("Model Name")
-                    TextField("", text: $modelName)
-                        .textFieldStyle(.roundedBorder)
-                        .help("The Gemini model to use for video description.")
-                }
+            TextField("Model Name:", text: $modelName)
+                .textFieldStyle(.roundedBorder)
+                .help("The Gemini model to use for video description.")
+            
+            TextField("Google Cloud Project:", text: $gcpProject, prompt: Text("Uses gcloud config if empty"))
+                .textFieldStyle(.roundedBorder)
+                .help("Google Cloud Project ID. If empty, uses gcloud config.")
+            
+            TextField("Google Cloud Location:", text: $gcpLocation, prompt: Text("e.g., global, us-central1"))
+                .textFieldStyle(.roundedBorder)
+                .help("Google Cloud Location (e.g., global, us-central1).")
+            
+            if showDebugSettings {
+                Divider().padding(.vertical, 4)
                 
-                VStack(alignment: .leading) {
-                    Text("Google Cloud Project")
-                    TextField("Uses gcloud config if empty", text: $gcpProject)
-                        .textFieldStyle(.roundedBorder)
-                        .help("Google Cloud Project ID. If empty, uses gcloud config.")
+                Picker("Environment:", selection: $environment) {
+                    Text("Production").tag("prod")
+                    Text("Staging").tag("staging")
+                    Text("Autopush").tag("autopush")
                 }
-                
-                VStack(alignment: .leading) {
-                    Text("Google Cloud Location")
-                    TextField("e.g., global, us-central1", text: $gcpLocation)
-                        .textFieldStyle(.roundedBorder)
-                        .help("Google Cloud Location (e.g., global, us-central1).")
-                }
-                
-                if showDebugSettings {
-                    Divider().padding(.vertical, 4)
-                    
-                    HStack {
-                        Text("Environment:")
-                        Picker("", selection: $environment) {
-                            Text("Production").tag("prod")
-                            Text("Staging").tag("staging")
-                            Text("Autopush").tag("autopush")
-                        }
-                        .pickerStyle(.menu)
-                        .help("The AI Platform environment to use.")
-                    }
-                }
+                .pickerStyle(.menu)
+                .help("The AI Platform environment to use.")
             }
         }
         .padding(20)

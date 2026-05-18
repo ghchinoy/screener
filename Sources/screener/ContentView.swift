@@ -186,26 +186,31 @@ struct ContentView: View {
                 ToolbarItemGroup(placement: .primaryAction) {
                     Button(action: {
                         showingActivityPopover.toggle()
-                    }) {
+                    }, label: {
                         Label("Batch Analysis", systemImage: batchManager.isAnalyzing ? "arrow.triangle.2.circlepath.circle.fill" : "cloud.circle")
                             .foregroundColor(batchManager.isAnalyzing ? .blue : .primary)
-                    }
+                    })
                     
                     Button(action: {
                         showingLogPopover.toggle()
-                    }) {
+                    }, label: {
                         Label("Debug Logs", systemImage: "terminal")
-                    }
+                    })
                     
                     Button(action: {
                         manager.loadVideos(from: directoryManager.directories)
-                    }) {
+                    }, label: {
                         Label("Refresh Directory", systemImage: "arrow.clockwise")
-                    }
+                    })
+                    .keyboardShortcut("r", modifiers: [.command])
                 }
             }
             .overlay {
-                if isCloudSearching {
+                if manager.videos.isEmpty {
+                    ContentUnavailableView("No Videos", systemImage: "video.slash", description: Text("Add a directory containing videos in Settings."))
+                } else if filteredVideos.isEmpty && !searchText.isEmpty {
+                    ContentUnavailableView.search(text: searchText)
+                } else if isCloudSearching {
                     ProgressView("Generating Cloud Vector...")
                         .padding()
                         .background(Color(NSColor.windowBackgroundColor).opacity(0.8))
@@ -217,8 +222,7 @@ struct ContentView: View {
                 DetailView(video: video)
                     .environmentObject(favoritesManager)
             } else {
-                Text("Select a video to view details")
-                    .foregroundColor(.secondary)
+                ContentUnavailableView("No Video Selected", systemImage: "play.slash", description: Text("Select a video from the sidebar to view its metadata and analysis."))
             }
         }
         .onAppear {
