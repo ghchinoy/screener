@@ -53,24 +53,103 @@ struct VertexRawResponse: Decodable {
     let candidates: [VertexRawResponseCandidate]?
 }
 
+struct EmbeddingResponse: Codable {
+    struct Prediction: Codable {
+        let embeddings: EmbeddingValues?
+        let textEmbedding: [Float]? // Sometimes returned differently based on model version
+    }
+    struct EmbeddingValues: Codable {
+        let values: [Float]
+    }
+    let predictions: [Prediction]?
+}
+
 class VertexClient {
     static let shared = VertexClient()
     private init() {}
-    
+
     private var modelName: String {
         UserDefaults.standard.string(forKey: "modelName") ?? "gemini-3.1-flash-lite"
     }
-    
+
     private var configuredProject: String {
         UserDefaults.standard.string(forKey: "gcpProject") ?? ""
     }
-    
+
     private var configuredLocation: String {
-        UserDefaults.standard.string(forKey: "gcpLocation") ?? "global"
+        UserDefaults.standard.string(forKey: "gcpLocation") ?? "us-central1"
     }
-    
+
     private var configuredEnvironment: String {
         UserDefaults.standard.string(forKey: "environment") ?? "prod"
+    }
+
+    func getEmbedding(text: String? = nil, videoURL: URL? = nil) async throws -> [Float] {
+        let token = try fetchADCToken()
+        let projectID = configuredProject.isEmpty ? try fetchProjectID() : configuredProject
+        let location = configuredLocation.isEmpty ? "us-central1" : configuredLocation
+
+        let baseHost: String
+        switch configuredEnvironment {
+        case "autopush": baseHost = "autopush-aiplatform.sandbox.googleapis.com"
+        case "staging": baseHost = "staging-aiplatform.sandbox.googleapis.com"
+        default: baseHost = "aiplatform.googleapis.com"
+        }
+
+        let host = location == "global" ? baseHost : "\(location)-\(baseHost)"
+
+        // Use multimodalembedding@001 or text-multimodalembedding-002
+        let embeddingModel = "multimodalembedding@001" 
+        let endpoint = "https://\(host)/v1/projects/\(projectID)/locations/\(location)/publishers/google/models/\(embeddingModel):predict"
+
+        guard let apiURL = URL(string: endpoint) else {
+            throw VertexError.apiError("Invalid URL")
+        }
+
+        var request = URLRequest(url: apiURL)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(projectID, forHTTPHeaderField: "x-goog-user-project")
+
+        var instance: [String: Any] = [:]
+        if let text = text {
+            instance["text"] = text
+        }
+        if let videoURL = videoURL {
+            let fileData = try Data(contentsOf: videoURL)
+            let base64String = fileData.base64EncodedString()
+            instance["video"] = [
+                "bytesBase64Encoded": base64String
+            ]
+        }
+
+        let payload: [String: Any] = [
+            "instances": [instance]
+        ]
+
+        request.httpBody = try JSONSerialization.data(withJSONObject: payload)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw VertexError.invalidResponse
+        }
+
+        if !(200...299).contains(httpResponse.statusCode) {
+            let errorMsg = String(data: data, encoding: .utf8) ?? "Unknown API Error"
+            throw VertexError.apiError("Status \(httpResponse.statusCode): \(errorMsg)")
+        }
+
+        let rawResponse = try JSONDecoder().decode(EmbeddingResponse.self, from: data)
+        if let first = rawResponse.predictions?.first {
+            if let values = first.embeddings?.values {
+                return values
+            } else if let values = first.textEmbedding {
+                return values
+            }
+        }
+        throw VertexError.invalidResponse
     }
     
     func describeVideo(url: URL) async throws -> GeminiResponse {

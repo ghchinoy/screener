@@ -46,7 +46,41 @@ class VideoMetadata {
     var motionType: String?
     var contentSafety: String?
     
+    // Embeddings
+    @Attribute(.externalStorage) var localTextVectorData: Data?
+    @Attribute(.externalStorage) var cloudVisualVectorData: Data?
+    
     init(filePath: String) {
         self.filePath = filePath
+    }
+}
+
+extension VideoMetadata {
+    var localTextVector: [Float]? {
+        get {
+            guard let data = localTextVectorData else { return nil }
+            return data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+        }
+        set {
+            if let newValue = newValue {
+                localTextVectorData = newValue.withUnsafeBufferPointer { Data(buffer: $0) }
+            } else {
+                localTextVectorData = nil
+            }
+        }
+    }
+    
+    var cloudVisualVector: [Float]? {
+        get {
+            guard let data = cloudVisualVectorData else { return nil }
+            return data.withUnsafeBytes { Array($0.bindMemory(to: Float.self)) }
+        }
+        set {
+            if let newValue = newValue {
+                cloudVisualVectorData = newValue.withUnsafeBufferPointer { Data(buffer: $0) }
+            } else {
+                cloudVisualVectorData = nil
+            }
+        }
     }
 }

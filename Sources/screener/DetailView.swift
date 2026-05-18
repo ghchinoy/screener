@@ -1,17 +1,3 @@
-// Copyright 2026 Google LLC
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 import SwiftUI
 import AVKit
 import SwiftData
@@ -64,7 +50,9 @@ struct DetailView: View {
                     }
                     
                     if let meta = metadata {
-                        MetadataInspectorView(metadata: meta, showingC2PADetails: $showingC2PADetails)
+                        MetadataInspectorView(metadata: meta, showingC2PADetails: $showingC2PADetails, onUpdate: {
+                            updateLocalEmbedding()
+                        })
                     } else {
                         ProgressView("Loading metadata...")
                     }
@@ -202,6 +190,35 @@ struct DetailView: View {
         }
     }
     
+    private func updateLocalEmbedding() {
+        guard let meta = metadata else { return }
+        let textParts = [
+            meta.summary,
+            meta.tags.joined(separator: ", "),
+            meta.colorMood,
+            meta.motionType,
+            meta.transcript,
+            meta.comments
+        ].compactMap { $0 }.filter { !$0.isEmpty }
+        
+        let fullText = textParts.joined(separator: " . ")
+        if let vector = SemanticSearchManager.shared.getLocalTextEmbedding(for: fullText) {
+            meta.localTextVector = vector
+            try? modelContext.save()
+        }
+    }
+    
+    private func updateCloudEmbedding() async {
+        guard let meta = metadata else { return }
+        do {
+            let vector = try await VertexClient.shared.getEmbedding(videoURL: video.url)
+            meta.cloudVisualVector = SemanticSearchManager.shared.normalize(vector)
+            try? modelContext.save()
+        } catch {
+            print("Failed to get cloud embedding: \(error)")
+        }
+    }
+    
     private func analyzeVideo() async {
         isAnalyzing = true
         errorMessage = nil
@@ -220,7 +237,11 @@ struct DetailView: View {
             metadata?.colorMood = response.colorMood
             metadata?.motionType = response.motionType
             metadata?.contentSafety = response.contentSafety
+            
+            updateLocalEmbedding()
             try? modelContext.save()
+            
+            await updateCloudEmbedding()
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -232,6 +253,7 @@ struct DetailView: View {
 struct MetadataInspectorView: View {
     @Bindable var metadata: VideoMetadata
     @Binding var showingC2PADetails: Bool
+    var onUpdate: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -306,6 +328,9 @@ struct MetadataInspectorView: View {
                     .frame(minHeight: 100)
                     .scrollContentBackground(.hidden)
                     .background(Color.clear)
+                    .onChange(of: metadata.comments) { _, _ in
+                        onUpdate()
+                    }
             }
             
             if metadata.summary != nil {
