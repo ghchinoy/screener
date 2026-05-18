@@ -4,7 +4,7 @@ Video Screener implements a cutting-edge **Hybrid Semantic Search** architecture
 
 This allows the application to remain lightning-fast and offline-capable for basic queries, while seamlessly scaling to deep visual semantic matching when required—all without needing a dedicated heavy vector database like Pinecone or Milvus.
 
-![Architecture Diagram](architecture.png)
+![Architecture Diagram](architecture.webp)
 
 ## 1. The Pre-Processing Pipeline (Gemini Analysis)
 
