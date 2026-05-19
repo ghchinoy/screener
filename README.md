@@ -9,6 +9,7 @@ Video Screener is a macOS native SwiftUI application built for developers, edito
 - **macOS HIG Layout**: Utilizes a fully compliant native SwiftUI `.inspector` pane for resizable, distraction-free analysis. Features a custom 3D Gemini-styled macOS app icon.
 - **Hybrid Semantic Search**: Learn more about the vector embedding architecture in our [Hybrid Semantic Search Documentation](docs/hybrid-semantic-search.md).
 - **SwiftData Persistence**: Video metadata, technical information, and custom comments are preserved locally on your machine automatically as you browse.
+- **Auto-Cleanup**: The application automatically detects when video files have been deleted from your hard drive and purges their orphaned metadata from the database during directory refreshes to maintain optimal performance.
 - **Content Credentials (C2PA) Native Integration**: Seamlessly detects and parses C2PA signatures and assertions (e.g., `c2pa.training-mining: notAllowed`) out of video manifests by natively bundling the `c2patool` Rust binary. Features a dedicated expandable modal detailing cryptographically signed provenance.
 - **Background Extraction**: Automatically extracts visual and technical metadata via `AVFoundation` without blocking the UI:
   - Thumbnails / Poster Frames

@@ -202,6 +202,7 @@ struct ContentView: View {
                     
                     Button(action: {
                         manager.loadVideos(from: directoryManager.directories)
+                        cleanupOrphanedMetadata()
                     }, label: {
                         Label("Refresh Directory", systemImage: "arrow.clockwise")
                     })
@@ -230,9 +231,11 @@ struct ContentView: View {
         }
         .onAppear {
             manager.loadVideos(from: directoryManager.directories)
+            cleanupOrphanedMetadata()
         }
         .onChange(of: directoryManager.directories) { oldValue, newValue in
             manager.loadVideos(from: newValue)
+            cleanupOrphanedMetadata()
             selectedVideo = nil
         }
         .sheet(isPresented: $showingActivityPopover) {
@@ -319,6 +322,23 @@ struct ContentView: View {
                     self.isCloudSearching = false
                 }
             }
+        }
+    }
+    
+    private func cleanupOrphanedMetadata() {
+        let fileManager = FileManager.default
+        var deletedCount = 0
+        
+        for meta in allMetadata {
+            if !fileManager.fileExists(atPath: meta.filePath) {
+                modelContext.delete(meta)
+                deletedCount += 1
+            }
+        }
+        
+        if deletedCount > 0 {
+            try? modelContext.save()
+            AppLogger.shared.log("Cleaned up \(deletedCount) orphaned metadata records for deleted files.")
         }
     }
 }
