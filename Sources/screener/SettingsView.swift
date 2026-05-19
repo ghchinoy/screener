@@ -27,6 +27,11 @@ struct SettingsView: View {
                 .tabItem {
                     Label("Gemini", systemImage: "sparkles")
                 }
+            
+            SearchSettingsView()
+                .tabItem {
+                    Label("Search", systemImage: "magnifyingglass")
+                }
                 
             DatabaseSettingsView()
                 .tabItem {
@@ -142,6 +147,31 @@ struct GeminiSettingsView: View {
                 }
                 .pickerStyle(.menu)
                 .help("The AI Platform environment to use.")
+            }
+        }
+        .padding(20)
+    }
+}
+
+struct SearchSettingsView: View {
+    @AppStorage("searchThreshold") private var searchThreshold: Double = 0.30
+    
+    var body: some View {
+        Form {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("Semantic Search Similarity Threshold")
+                    .font(.headline)
+                
+                HStack {
+                    Slider(value: $searchThreshold, in: 0.0...1.0)
+                    Text(String(format: "%.2f", searchThreshold))
+                        .frame(width: 40, alignment: .trailing)
+                        .font(.system(.body, design: .monospaced))
+                }
+                
+                Text("A higher threshold requires a stricter match. A lower threshold casts a wider net across your library.")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
         }
         .padding(20)

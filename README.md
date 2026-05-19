@@ -23,7 +23,7 @@ Video Screener is a macOS native SwiftUI application built for developers, edito
   - Color & Mood Assessment
   - Camera Motion Types
   - Content Safety Ratings
-- **Multimodal Semantic Search**: Leverages Vertex AI's `gemini-embedding-2-preview` alongside Apple's on-device `NLEmbedding` to provide blazing fast, deep semantic search across text and visual data. Learn more about the vector embedding architecture in our [Hybrid Semantic Search Documentation](docs/hybrid-semantic-search.md).
+- **Multimodal Semantic Search**: Leverages Vertex AI's `gemini-embedding-2-preview` alongside Apple's on-device `NLEmbedding` to provide blazing fast, deep semantic search across text and visual data. Results are fully transparent, surfacing cosine similarity scores and offering an interactive, real-time configurable cutoff threshold in Settings. Learn more about the vector embedding architecture in our [Hybrid Semantic Search Documentation](docs/hybrid-semantic-search.md).
 - **Environment & GCP Aware**: Manage your Google Cloud project, region, and model names effortlessly within the native macOS Settings (`Cmd+,`). Supports connecting to Production, Staging, and Autopush environments.
 
 ## Setup & Running

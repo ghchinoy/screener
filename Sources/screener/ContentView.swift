@@ -52,6 +52,7 @@ struct VideoRowView: View {
                     Text(String(format: "Score: %.2f", score))
                         .font(.caption)
                         .foregroundColor(score > 0.6 ? .green : .orange)
+                        .help(String(format: "Cosine Similarity: %.2f\n(Higher is more relevant, max 1.0)", score))
                 }
                 
                 Text(video.sizeString).font(.subheadline).foregroundColor(.secondary)
@@ -88,6 +89,8 @@ struct ContentView: View {
     @State private var isCloudSearching = false
     @State private var showingActivityPopover = false
     @State private var showingLogPopover = false
+    
+    @AppStorage("searchThreshold") private var searchThreshold: Double = 0.30
     
     @State private var searchMode: SearchMode = .cloudVisual
     @State private var cloudQueryVector: [Float]? = nil
@@ -138,7 +141,7 @@ struct ContentView: View {
         
         // Filter out bad matches and sort
         return scoredVideos
-            .filter { $0.score > 0.3 }
+            .filter { $0.score > Float(searchThreshold) }
             .sorted { $0.score > $1.score }
     }
     
@@ -157,7 +160,7 @@ struct ContentView: View {
                     }
                 }
                 
-                Section("All Videos") {
+                Section(searchText.isEmpty ? "All Videos" : "Search Results") {
                     ForEach(filtered, id: \.video.id) { item in
                         VideoRowView(video: item.video, similarityScore: item.score)
                             .tag(item.video)

@@ -47,7 +47,13 @@ Using hardware-accelerated matrix math on Apple Silicon (M-Series chips), the ap
 
 ### Search Modes
 
-1. **Local Text Search (Default):** 
-   As the user types, the query is converted to an `NLEmbedding` locally. `vDSP` instantly scores and filters the list against the local summaries and comments. It feels like magic, but consumes zero network bandwidth.
-2. **Cloud Visual Search:**
-   When toggled, the text query is sent to Vertex AI's `embedContent` endpoint to retrieve a 1,408-dimensional text vector. This vector is then compared against the raw `cloudVisualVector` of every video locally using `vDSP`. This mode allows finding videos based on abstract visual concepts ("drone flying over water at sunset") that cross modalities.
+1. **Cloud Visual Search (Default):**
+   When you search, the text query is sent to Vertex AI's `embedContent` endpoint to retrieve a 1,408-dimensional text vector. This vector is then compared against the raw `cloudVisualVector` of every video locally using `vDSP`. This mode allows finding videos based on abstract visual concepts ("drone flying over water at sunset") that cross modalities.
+2. **Local Text Search:** 
+   When toggled, the query is converted to an `NLEmbedding` locally. `vDSP` instantly scores and filters the list against the local summaries and comments. It feels like magic, but consumes zero network bandwidth.
+
+### Search Transparency & Controls
+
+Unlike traditional black-box search engines, Video Screener surfaces exactly *why* a video was matched:
+*   **Similarity Scores:** The UI dynamically displays the exact Cosine Similarity score next to each search result. Hovering over the score provides a native tooltip explaining the metric.
+*   **Configurable Threshold:** Users can interactively adjust the similarity cutoff threshold via a slider in the application **Settings > Search** tab. Adjusting the slider updates the search results in real-time, allowing users to intuitively widen or narrow the strictness of the vector matching.
