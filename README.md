@@ -17,6 +17,10 @@ Video Screener is a macOS native SwiftUI application built for developers, edito
   - Resolution and Aspect Ratios
   - Frame Rate (FPS)
   - Audio Track Detection
+- **Supported Video Formats**: Designed specifically for native macOS `AVFoundation` formats:
+  - **Containers:** `.mp4`, `.mov`, `.m4v`
+  - **Codecs:** H.264 (AVC), HEVC (H.265), Apple ProRes
+  - *Note: Non-native formats like `.webm` and `.mkv` are not supported out-of-the-box by AVKit/AVPlayer.*
 - **Gemini Video Analysis**: Connects directly to Google Cloud Vertex AI (`gemini-3.1-flash-lite`) to analyze video content, providing:
   - Concise Summaries
   - Topical Tags
